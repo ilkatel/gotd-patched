@@ -55,11 +55,6 @@ func (c *Client) invokeDirect(ctx context.Context, input bin.Encoder, output bin
 	if err := c.invokeConn(ctx, input, output); err != nil {
 		// Handling datacenter migration request.
 		if rpcErr, ok := tgerr.As(err); ok && strings.HasSuffix(rpcErr.Type, "_MIGRATE") {
-			// If DisableAutoMigration is enabled, return error as-is
-			if c.disableAutoMigration {
-				return err
-			}
-
 			targetDC := rpcErr.Argument
 			log := c.log.With(
 				zap.String("error_type", rpcErr.Type),
@@ -69,11 +64,17 @@ func (c *Client) invokeDirect(ctx context.Context, input bin.Encoder, output bin
 			// called by authorized client, so we should try to transfer auth to new DC
 			// and create new connection.
 			if rpcErr.IsOneOf("FILE_MIGRATE", "STATS_MIGRATE") {
+				// If DisableAutoMigration is enabled, return FILE/STATS migrate errors as-is
+				// to avoid deadlock with Waiter middleware on reentrant calls
+				if c.disableAutoMigration {
+					return err
+				}
 				log.Debug("Invoking on target DC")
 				return c.invokeSub(ctx, targetDC, input, output)
 			}
 
-			// Otherwise we should change primary DC.
+			// Otherwise we should change primary DC (PHONE_MIGRATE, USER_MIGRATE, etc).
+			// These migrations happen during auth when Waiter is free, so always handle them.
 			log.Info("Migrating to target DC")
 			return c.invokeMigrate(ctx, targetDC, input, output)
 		}
