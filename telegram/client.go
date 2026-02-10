@@ -140,6 +140,9 @@ type Client struct {
 
 	// onSelfSuccess is called on success calling Self().
 	onSelfSuccess func(self *tg.User)
+	
+	// disableAutoMigration disables automatic _MIGRATE error handling.
+	disableAutoMigration bool // immutable
 }
 
 // NewClient creates new unstarted client.
@@ -173,10 +176,11 @@ func NewClient(appID int, appHash string, opt Options) *Client {
 		device:           opt.Device,
 		migrationTimeout: opt.MigrationTimeout,
 		noUpdatesMode:    opt.NoUpdates,
-		mw:               opt.Middlewares,
-		onTransfer:       opt.OnTransfer,
-		onSelfError:      opt.OnSelfError,
-		onSelfSuccess:    opt.OnSelfSuccess,
+		mw:                   opt.Middlewares,
+		onTransfer:           opt.OnTransfer,
+		onSelfError:          opt.OnSelfError,
+		onSelfSuccess:        opt.OnSelfSuccess,
+		disableAutoMigration: opt.DisableAutoMigration,
 	}
 	if opt.TracerProvider != nil {
 		client.tracer = opt.TracerProvider.Tracer(oteltg.Name)

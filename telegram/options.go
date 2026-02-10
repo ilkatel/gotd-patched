@@ -111,6 +111,15 @@ type Options struct {
 
 	// OnSelfSuccess is called when client get self calling Self() on connect.
 	OnSelfSuccess func(self *tg.User)
+
+	// DisableAutoMigration disables automatic handling of _MIGRATE errors.
+	// When enabled, _MIGRATE errors will be returned to caller instead of
+	// being handled automatically. This allows manual DC migration handling
+	// and prevents Waiter middleware deadlocks on reentrant calls.
+	//
+	// Use this option if you need full control over DC migration or if you're
+	// using Waiter middleware with methods that trigger DC migration.
+	DisableAutoMigration bool
 }
 
 func (opt *Options) setDefaults() {

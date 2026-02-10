@@ -55,6 +55,11 @@ func (c *Client) invokeDirect(ctx context.Context, input bin.Encoder, output bin
 	if err := c.invokeConn(ctx, input, output); err != nil {
 		// Handling datacenter migration request.
 		if rpcErr, ok := tgerr.As(err); ok && strings.HasSuffix(rpcErr.Type, "_MIGRATE") {
+			// If DisableAutoMigration is enabled, return error as-is
+			if c.disableAutoMigration {
+				return err
+			}
+
 			targetDC := rpcErr.Argument
 			log := c.log.With(
 				zap.String("error_type", rpcErr.Type),
